@@ -14,8 +14,12 @@ const uint32_t BLUE = pixels.Color(0, 0, 255);
 const uint32_t ORANGE = pixels.Color(255, 128, 0);
 const uint32_t MAGENTA = pixels.Color(255, 0, 255);
 
+const uint8_t DIM = 5;
+const uint8_t BRIGHT = 50;
+
 void setup() {
   pixels.begin();
+  pixels.setBrightness(DIM);
   pixels.setPixelColor(0, WHITE);
   pixels.show();
   
@@ -30,7 +34,8 @@ void setup() {
     pixels.show();
   }
 
-  pixels.setBrightness(50);
+  scd30.selfCalibrationEnabled(false);
+
   pixels.clear();
   pixels.show();
 
@@ -55,7 +60,18 @@ void loop() {
 }
 
 void set_color_from_co2() {
-  pixels.setPixelColor(0, get_co2_color());
+  static uint32_t previous_color = 0;
+  uint32_t current_color = get_co2_color();
+
+  // Brighten on change
+  if (previous_color != current_color)
+    pixels.setBrightness(BRIGHT);
+  else
+    pixels.setBrightness(DIM);
+
+  previous_color = current_color;
+
+  pixels.setPixelColor(0, current_color);
   pixels.show();
 }
 
@@ -95,5 +111,5 @@ uint32_t get_co2_color() {
 void blink(uint32_t color) {
     pixels.setPixelColor(0, color);
     pixels.show();
-    delay(500);
+    delay(333);
 }
