@@ -1,9 +1,17 @@
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_SCD30.h>
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+// SSD1306 header #defines WHITE.
+#undef WHITE
 
 // create a pixel strand with 1 pixel on PIN_NEOPIXEL
 Adafruit_NeoPixel pixels(1, PIN_NEOPIXEL);
 Adafruit_SCD30  scd30;
+Adafruit_SSD1306 display;
 
 // TODO: capacitive thing to set pixel brightness?
 
@@ -20,16 +28,35 @@ const uint8_t BRIGHT = 50;
 
 const uint32_t blink_duration = 222;
 
+const uint8_t button_a = A3;
+const uint8_t button_b = A2;
+const uint8_t button_c = A1;
+
+// 0 and 1 are cut off on my display.
+const uint16_t leftmost_x = 2;
+
+void displayMessage(const char* message);
+void blink(uint32_t color);
+void set_color_from_co2();
+void print_data();
+uint32_t get_co2_color();
+
 void setup() {
   pixels.begin();
   pixels.setBrightness(DIM);
 
-  pinMode(LED_BUILTIN, OUTPUT);
-  
-  Serial.begin(115200);
+  display = Adafruit_SSD1306(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT, &Wire);
+
+  while (!display.begin()) {
+    blink(ORANGE);
+    blink(BLUE);
+  }
+
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
 
   while (!scd30.begin()) {
-    Serial.println("No SCD30 chip detected.");
+    displayMessage("No SCD30 chip detected.");
     blink(PURPLE);
     pixels.clear();
     pixels.show();
@@ -41,25 +68,24 @@ void setup() {
   pixels.clear();
   pixels.show();
 
-  Serial.print("Measurement Interval: "); 
-  Serial.print(scd30.getMeasurementInterval()); 
-  Serial.println(" seconds");
+  display.clearDisplay();
+  display.setCursor(leftmost_x, 0);
+  display.printf("Measurement every\n %d seconds", scd30.getMeasurementInterval());
+  display.display();
 }
 
 void loop() {
   if (!scd30.dataReady()){
-    digitalWrite(LED_BUILTIN, LOW);
     delay(100);
+    // TODO: Wait for RDY pin to go high instead.
     return;
   }
 
   if (!scd30.read()){
-    Serial.println("Error reading sensor data");
-    return; 
+    displayMessage("Error reading sensor data");
+    return;
   }
 
-  digitalWrite(LED_BUILTIN, HIGH);
-  
   print_data();
   set_color_from_co2();
 }
@@ -81,18 +107,21 @@ void set_color_from_co2() {
 }
 
 void print_data() {
-  Serial.print("Temperature: ");
-  Serial.print(scd30.temperature);
-  Serial.println(" degrees C");
-  
-  Serial.print("Relative Humidity: ");
-  Serial.print(scd30.relative_humidity);
-  Serial.println(" %");
-  
-  Serial.print("CO2: ");
-  Serial.print(scd30.CO2, 3);
-  Serial.println(" ppm");
-  Serial.println("");
+  display.clearDisplay();
+  display.setCursor(leftmost_x, 0);
+
+  display.print(scd30.temperature);
+  display.print(" C");
+
+  display.setCursor(leftmost_x, 10);
+  display.print(scd30.CO2, 3);
+  display.print(" ppm CO2");
+
+  display.setCursor(leftmost_x, 20);
+  display.print(scd30.relative_humidity, 3);
+  display.print("% humidity");
+
+  display.display();
 }
 
 /*
@@ -101,7 +130,7 @@ void print_data() {
  * 1,000-2,000ppm  Complaints of drowsiness and poor air.
  * 2,000-5,000 ppm Headaches, sleepiness and stagnant, stale, stuffy air. Poor concentration, loss of attention, increased heart rate and slight nausea may also be present.
  * 5,000           Workplace exposure limit (as 8-hour TWA) in most jurisdictions.
- * >40,000 ppm     Exposure may lead to serious oxygen deprivation resulting in permanent brain damage, coma, even death. 
+ * >40,000 ppm     Exposure may lead to serious oxygen deprivation resulting in permanent brain damage, coma, even death.
  */
 uint32_t get_co2_color() {
   if (scd30.CO2 < 250) return WHITE;
@@ -117,4 +146,11 @@ void blink(uint32_t color) {
     pixels.setPixelColor(0, color);
     pixels.show();
     delay(blink_duration);
+}
+
+void displayMessage(const char* message) {
+  display.clearDisplay();
+  display.setCursor(leftmost_x, 0);
+  display.println(message);
+  display.display();
 }
