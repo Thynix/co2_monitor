@@ -4,6 +4,7 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include "ArduinoLowPower.h"
 
 // SSD1306 header #defines WHITE.
 #undef WHITE
@@ -31,6 +32,7 @@ const uint32_t blink_duration = 222;
 const uint8_t button_a = A3;
 const uint8_t button_b = A2;
 const uint8_t button_c = A1;
+const uint8_t ready_pin = A0;
 
 // 0 and 1 are cut off on my display.
 const uint16_t leftmost_x = 2;
@@ -54,9 +56,11 @@ void setup() {
 
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
+  display.clearDisplay();
+  display.display();
 
   while (!scd30.begin()) {
-    displayMessage("No SCD30 chip detected.");
+    displayMessage("No SCD30 chip\n detected.");
     blink(PURPLE);
     pixels.clear();
     pixels.show();
@@ -68,16 +72,12 @@ void setup() {
   pixels.clear();
   pixels.show();
 
-  display.clearDisplay();
-  display.setCursor(leftmost_x, 0);
-  display.printf("Measurement every\n %d seconds", scd30.getMeasurementInterval());
-  display.display();
+  pinMode(ready_pin, INPUT);
+  LowPower.attachInterruptWakeup(digitalPinToInterrupt(ready_pin), NULL, RISING);
 }
 
 void loop() {
   if (!scd30.dataReady()){
-    delay(100);
-    // TODO: Wait for RDY pin to go high instead.
     return;
   }
 
@@ -88,6 +88,8 @@ void loop() {
 
   print_data();
   set_color_from_co2();
+
+  LowPower.idle();
 }
 
 void set_color_from_co2() {
