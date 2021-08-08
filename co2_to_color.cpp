@@ -47,20 +47,7 @@ void setup() {
   pixels.begin();
   pixels.setBrightness(DIM);
 
-  display = Adafruit_SSD1306(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT, &Wire);
-
-  while (!display.begin()) {
-    blink(ORANGE);
-    blink(BLUE);
-  }
-
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.clearDisplay();
-  display.display();
-
   while (!scd30.begin()) {
-    displayMessage("No SCD30 chip\n detected.");
     blink(PURPLE);
     pixels.clear();
     pixels.show();
@@ -73,7 +60,18 @@ void setup() {
   pixels.show();
 
   pinMode(ready_pin, INPUT);
-  LowPower.attachInterruptWakeup(digitalPinToInterrupt(ready_pin), NULL, RISING);
+  LowPower.attachInterruptWakeup(digitalPinToInterrupt(ready_pin), NULL, HIGH);
+
+  display = Adafruit_SSD1306(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT, &Wire);
+  while (!display.begin()) {
+    blink(ORANGE);
+    blink(BLUE);
+  }
+
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.clearDisplay();
+  display.display();
 }
 
 void loop() {
