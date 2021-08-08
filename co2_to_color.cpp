@@ -48,14 +48,13 @@ void setup() {
   pixels.begin();
   pixels.setBrightness(DIM);
   pixels.setPixelColor(0, PURPLE);
+  pixels.show();
 
   pinMode(ready_pin, INPUT);
 
   while (!scd30.begin()) {
+    blink(BLUE);
     blink(PURPLE);
-    pixels.clear();
-    pixels.show();
-    delay(blink_duration);
   }
 
   scd30.selfCalibrationEnabled(false);
