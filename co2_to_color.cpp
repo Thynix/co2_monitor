@@ -110,17 +110,24 @@ void set_color_from_co2() {
 
 void print_data() {
   display.clearDisplay();
+
+  // SCD-30
+  // Measurement range: 400 ppm – 10.000 ppm
+  // Accuracy: ±(30 ppm + 3%)
   display.setCursor(leftmost_x, 0);
-
-  display.print(scd30.temperature);
-  display.print(" C");
-
-  display.setCursor(leftmost_x, 10);
-  display.print(scd30.CO2, 3);
+  display.print(scd30.CO2, 0);
   display.print(" ppm CO2");
 
+  // SHT31
+  // Accuracy 0.3 C
+  display.setCursor(leftmost_x, 10);
+  display.print(scd30.temperature, 1);
+  display.print(" C");
+
+  // SHT31
+  // Accuracy ±2% - 4% at 90%+
   display.setCursor(leftmost_x, 20);
-  display.print(scd30.relative_humidity, 3);
+  display.print(scd30.relative_humidity, 0);
   display.print("% humidity");
 
   display.display();
