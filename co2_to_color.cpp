@@ -52,6 +52,10 @@ void setup() {
 
   pinMode(ready_pin, INPUT);
 
+  // Wait so that if it's just received power, the SCD-30 can start
+  // immediately instead of having to retry. Are voltages stabilizing?
+  delayMicroseconds(10000);
+
   while (!scd30.begin()) {
     blink(BLUE);
     blink(PURPLE);
@@ -59,8 +63,9 @@ void setup() {
 
   scd30.selfCalibrationEnabled(false);
 
-  pixels.clear();
-  pixels.show();
+  // When first powered the SSD1306 is liable to return success but
+  // keep the display blank. Wait for... booting or something.
+  delayMicroseconds(100000);
 
   display = Adafruit_SSD1306(SSD1306_LCDWIDTH, SSD1306_LCDHEIGHT, &Wire);
   while (!display.begin()) {
@@ -68,12 +73,14 @@ void setup() {
     blink(BLUE);
   }
 
+  LowPower.attachInterruptWakeup(digitalPinToInterrupt(ready_pin), NULL, RISING);
+
+  pixels.clear();
+  pixels.show();
+
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
-  display.clearDisplay();
-  display.display();
-
-  LowPower.attachInterruptWakeup(digitalPinToInterrupt(ready_pin), NULL, RISING);
+  displayMessage("Waiting for sensor");
 }
 
 void loop() {
