@@ -20,9 +20,11 @@ const uint32_t WHITE = pixels.Color(255, 255, 255);
 const uint32_t RED = pixels.Color(255, 0, 0);
 const uint32_t GREEN = pixels.Color(0, 255, 0);
 const uint32_t BLUE = pixels.Color(0, 0, 255);
+const uint32_t YELLOW = pixels.Color(255, 255, 0);
 const uint32_t ORANGE = pixels.Color(255, 128, 0);
 const uint32_t MAGENTA = pixels.Color(255, 0, 255);
 const uint32_t PURPLE = pixels.Color(128, 0, 128);
+const uint32_t HOT_PINK = pixels.Color(255, 0, 128);
 
 const uint8_t DIM = 5;
 const uint8_t BRIGHT = 50;
@@ -51,6 +53,9 @@ void setup() {
   pixels.show();
 
   pinMode(ready_pin, INPUT);
+  pinMode(button_a, INPUT_PULLUP);
+  pinMode(button_b, INPUT_PULLUP);
+  pinMode(button_c, INPUT_PULLUP);
 
   // Wait so that if it's just received power, the SCD-30 can start
   // immediately instead of having to retry. Are voltages stabilizing?
@@ -146,13 +151,21 @@ void print_data(float CO2, float temperature, float relative_humidity) {
 }
 
 /*
- * 350-400ppm      Normal background concentration in outdoor ambient air
- * 400-900ppm      Well-ventilated occupied indoor space
- * 900-2,000ppm    Complaints of drowsiness and poor air.
- * 2,000-5,000 ppm Headaches, sleepiness and stagnant, stale, stuffy air. Poor concentration, loss of attention, increased heart rate and slight nausea may also be present.
- * 5,000           Workplace exposure limit (as 8-hour TWA) in most jurisdictions.
+ * 350-400 ppm     Normal background concentration in outdoor ambient air
+ * 870 ppm         American Society of Heating, Refrigeration, and
+ *                 Air-conditioning Engineers indoor steady-state
+ *                 recommendation.
+ * 400-1000 ppm    Well-ventilated occupied indoor space.
+ * 900-2,000 ppm   Complaints of drowsiness and poor air.
+ * 2,000-5,000 ppm Headaches, sleepiness and stagnant, stale, stuffy air.
+ *                 Poor concentration, loss of attention, increased heart
+ *                 rate and slight nausea may also be present.
+ * 5,000           Workplace exposure limit (as 8-hour TWA) in most
+ *                 jurisdictions.
  * >40,000 ppm     Immediately harmful due to oxygen deprivation.
- * 
+ *
+ * SCD30 datasheet says it offers high accuracy "400 ppm – 10’000 ppm."
+ *
  * Working from
  * https://www.dhs.wisconsin.gov/chemical/carbondioxide.htm
  * https://www.epa.gov/sites/default/files/2014-08/documents/base_3c2o2.pdf
@@ -160,21 +173,24 @@ void print_data(float CO2, float temperature, float relative_humidity) {
 uint32_t get_co2_color(float CO2) {
   if (CO2 < 350) return  WHITE;
   if (CO2 < 400) return  BLUE;
-  if (CO2 < 900) return  GREEN;
+  if (CO2 < 870) return  GREEN;
+  if (CO2 < 1000) return YELLOW;
   if (CO2 < 2000) return ORANGE;
   if (CO2 < 5000) return RED;
-
-  return MAGENTA;
+  if (CO2 < 9999) return HOT_PINK;
+  return                 MAGENTA;
 }
 
-const char* get_co2_description(float CO2) {
-  if (CO2 < 350) return  "Very good outdoor";
-  if (CO2 < 400) return  "Typical outdoor";
-  if (CO2 < 900) return  "Well-ventilated indoor";
-  if (CO2 < 2000) return "Poor air";
-  if (CO2 < 5000) return "Stale, stuffy air";
-
-  return                 "> exposure limit";
+const char *get_co2_description(float CO2) {
+  // Maximum line length "123456789ABCDEFGHIJKL";
+  if (CO2 < 350) return  "Very good outdoor air";
+  if (CO2 < 400) return  "Typical outdoor air";
+  if (CO2 < 870) return  "Good indoor air";
+  if (CO2 < 1000) return "Borderline indoor air";
+  if (CO2 < 2000) return "Poor indoor air";
+  if (CO2 < 5000) return "Bad - stale & stuffy";
+  if (CO2 < 9999) return "Above exposure limit";
+  return                 "Too high for accuracy";
 }
 
 void blink(uint32_t color) {
