@@ -28,7 +28,7 @@ const uint32_t HOT_PINK = pixels.Color(255, 0, 128);
 const uint8_t DIM = 5;
 const uint8_t BRIGHT = 50;
 
-const uint32_t blink_duration = 222;
+const uint32_t blink_duration = 500; // milliseconds
 
 const uint8_t button_a = A3;
 const uint8_t button_b = A2;
@@ -40,10 +40,19 @@ const uint16_t leftmost_x = 2;
 
 void displayMessage(const char *message);
 void blink(uint32_t color);
-void set_color_from_co2(float CO2);
-void print_data(float CO2, float temperature, float relative_humidity);
+void update_color_code(float CO2, uint32_t read_count);
+void update_display(float CO2, float temperature, float relative_humidity,
+                    uint32_t read_count);
 uint32_t get_co2_color(float CO2);
 const char *get_co2_description(float CO2);
+void display_button_interrupt();
+void neopixel_button_interrupt();
+
+volatile unsigned long last_display_button_falling;
+volatile bool pending_display_toggle = false;
+volatile unsigned long last_neopixel_button_falling;
+volatile bool pending_neopixel_toggle = false;
+const unsigned long debounce_interval = 100;
 
 void setup() {
   pixels.begin();
@@ -79,6 +88,10 @@ void setup() {
 
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(ready_pin), NULL,
                                  RISING);
+  LowPower.attachInterruptWakeup(digitalPinToInterrupt(button_a),
+                                 display_button_interrupt, FALLING);
+  LowPower.attachInterruptWakeup(digitalPinToInterrupt(button_b),
+                                 neopixel_button_interrupt, FALLING);
 
   pixels.clear();
   pixels.show();
@@ -89,22 +102,53 @@ void setup() {
 }
 
 void loop() {
-  if (!scd30.dataReady()) {
+  // Count reads to allow updates to avoid doing needless work if called
+  // multiple times for the same measurement.
+  static uint32_t read_count = 0;
+  if (scd30.dataReady()) {
+    if (scd30.read()) {
+      read_count++;
+    } else {
+      displayMessage("Error reading sensor data");
+    }
+  }
+
+  // Do not update display and color when the sensor has never been read.
+  // "nan" is not useful information.
+  if (read_count == 0) {
+    LowPower.idle();
     return;
   }
 
-  if (!scd30.read()) {
-    displayMessage("Error reading sensor data");
-    return;
-  }
-
-  print_data(scd30.CO2, scd30.temperature, scd30.relative_humidity);
-  set_color_from_co2(scd30.CO2);
+  update_display(scd30.CO2, scd30.temperature, scd30.relative_humidity,
+                 read_count);
+  update_color_code(scd30.CO2, read_count);
 
   LowPower.idle();
 }
 
-void set_color_from_co2(float CO2) {
+void update_color_code(float CO2, uint32_t read_count) {
+  static bool neopixel_enabled = true;
+  if (pending_neopixel_toggle &&
+      (millis() - last_neopixel_button_falling) > debounce_interval) {
+    pending_neopixel_toggle = false;
+
+    neopixel_enabled = !neopixel_enabled;
+    if (!neopixel_enabled) {
+      pixels.setBrightness(0);
+      pixels.show();
+      return;
+    }
+  }
+
+  static uint32_t previous_read_count = 0;
+  if (previous_read_count == read_count) {
+    previous_read_count = read_count;
+    return;
+  }
+
+  previous_read_count = read_count;
+
   static uint32_t previous_color = 0;
   uint32_t current_color = get_co2_color(CO2);
 
@@ -120,7 +164,29 @@ void set_color_from_co2(float CO2) {
   pixels.show();
 }
 
-void print_data(float CO2, float temperature, float relative_humidity) {
+void update_display(float CO2, float temperature, float relative_humidity,
+                    uint32_t read_count) {
+  static bool display_enabled = true;
+  if (pending_display_toggle &&
+      (millis() - last_display_button_falling) > debounce_interval) {
+    pending_display_toggle = false;
+
+    display_enabled = !display_enabled;
+    if (!display_enabled) {
+      display.clearDisplay();
+      display.display();
+      return;
+    }
+  }
+
+  static uint32_t previous_read_count = 0;
+  if (previous_read_count == read_count) {
+    previous_read_count = read_count;
+    return;
+  }
+
+  previous_read_count = read_count;
+
   display.clearDisplay();
 
   // SCD-30
@@ -210,4 +276,20 @@ void displayMessage(const char *message) {
   display.setCursor(leftmost_x, 0);
   display.println(message);
   display.display();
+}
+
+void display_button_interrupt() {
+  unsigned long now = millis();
+  if (now - last_display_button_falling > debounce_interval) {
+    last_display_button_falling = now;
+    pending_display_toggle = true;
+  }
+}
+
+void neopixel_button_interrupt() {
+  unsigned long now = millis();
+  if (now - last_neopixel_button_falling > debounce_interval) {
+    last_neopixel_button_falling = now;
+    pending_neopixel_toggle = true;
+  }
 }

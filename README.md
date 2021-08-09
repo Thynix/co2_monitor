@@ -9,6 +9,9 @@ Imagine the [OLED CO2 Monitor](https://github.com/adafruit/Adafruit_SCD30/tree/m
 * Fahrenheit conversion
 * NeoPixel CO2 level color codes
 
+The NeoPixel brightens if the color just changed. Toggle the display and
+NeoPixel with button A and button B.
+
 ## Hardware
 
 * [SCD30 CO2 sensor](https://github.com/adafruit/Adafruit_SCD30)
