@@ -65,7 +65,7 @@ void setup() {
   pinMode(button_b, INPUT_PULLUP);
   pinMode(button_c, INPUT_PULLUP);
 
-  // Wait so that if it's just received power, the SCD-30 can start
+  // Wait so that if it's just received power, the SCD30 can start
   // immediately instead of having to retry. Are voltages stabilizing?
   delayMicroseconds(10000);
 
@@ -189,7 +189,7 @@ void update_display(float CO2, float temperature, float relative_humidity,
 
   display.clearDisplay();
 
-  // SCD-30
+  // SCD30
   // Measurement range: 400 ppm – 10.000 ppm
   // Accuracy: ±(30 ppm + 3%)
   display.setCursor(leftmost_x, 0);
