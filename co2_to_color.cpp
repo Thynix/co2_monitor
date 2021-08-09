@@ -9,9 +9,8 @@
 // SSD1306 header #defines WHITE.
 #undef WHITE
 
-// create a pixel strand with 1 pixel on PIN_NEOPIXEL
 Adafruit_NeoPixel pixels(1, PIN_NEOPIXEL);
-Adafruit_SCD30  scd30;
+Adafruit_SCD30 scd30;
 Adafruit_SSD1306 display;
 
 // TODO: capacitive thing to set pixel brightness?
