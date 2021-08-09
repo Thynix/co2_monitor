@@ -139,6 +139,9 @@ void update_color_code(float CO2, uint32_t read_count) {
       pixels.show();
       return;
     }
+
+    // Reflect enabling disabled NeoPixel immediately.
+    goto set_neopixel;
   }
 
   static uint32_t previous_read_count = 0;
@@ -149,6 +152,11 @@ void update_color_code(float CO2, uint32_t read_count) {
 
   previous_read_count = read_count;
 
+  if (!neopixel_enabled) {
+    return;
+  }
+
+set_neopixel:
   static uint32_t previous_color = 0;
   uint32_t current_color = get_co2_color(CO2);
 
@@ -177,6 +185,9 @@ void update_display(float CO2, float temperature, float relative_humidity,
       display.display();
       return;
     }
+
+    // Reflect enabling disabled display immediately.
+    goto set_display;
   }
 
   static uint32_t previous_read_count = 0;
@@ -187,6 +198,11 @@ void update_display(float CO2, float temperature, float relative_humidity,
 
   previous_read_count = read_count;
 
+  if (!display_enabled) {
+    return;
+  }
+
+set_display:
   display.clearDisplay();
 
   // SCD30
