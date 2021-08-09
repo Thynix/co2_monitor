@@ -1,10 +1,10 @@
+#include "ArduinoLowPower.h"
+#include <Adafruit_GFX.h>
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_SCD30.h>
+#include <Adafruit_SSD1306.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include "ArduinoLowPower.h"
 
 // SSD1306 header #defines WHITE.
 #undef WHITE
@@ -38,12 +38,12 @@ const uint8_t ready_pin = A0;
 // 0 and 1 are cut off on my display.
 const uint16_t leftmost_x = 2;
 
-void displayMessage(const char* message);
+void displayMessage(const char *message);
 void blink(uint32_t color);
 void set_color_from_co2(float CO2);
 void print_data(float CO2, float temperature, float relative_humidity);
 uint32_t get_co2_color(float CO2);
-const char* get_co2_description(float CO2);
+const char *get_co2_description(float CO2);
 
 void setup() {
   pixels.begin();
@@ -77,7 +77,8 @@ void setup() {
     blink(BLUE);
   }
 
-  LowPower.attachInterruptWakeup(digitalPinToInterrupt(ready_pin), NULL, RISING);
+  LowPower.attachInterruptWakeup(digitalPinToInterrupt(ready_pin), NULL,
+                                 RISING);
 
   pixels.clear();
   pixels.show();
@@ -88,11 +89,11 @@ void setup() {
 }
 
 void loop() {
-  if (!scd30.dataReady()){
+  if (!scd30.dataReady()) {
     return;
   }
 
-  if (!scd30.read()){
+  if (!scd30.read()) {
     displayMessage("Error reading sensor data");
     return;
   }
@@ -134,7 +135,7 @@ void print_data(float CO2, float temperature, float relative_humidity) {
   display.setCursor(leftmost_x, 8);
   display.print(temperature, 1);
   display.print(" C | ");
-  display.print(temperature * (9.0/5) + 32, 1);
+  display.print(temperature * (9.0 / 5) + 32, 1);
   display.print(" F");
 
   // SHT31
@@ -149,6 +150,7 @@ void print_data(float CO2, float temperature, float relative_humidity) {
   display.display();
 }
 
+// clang-format off
 /*
  * 350-400 ppm     Normal background concentration in outdoor ambient air
  * 870 ppm         American Society of Heating, Refrigeration, and
@@ -169,7 +171,9 @@ void print_data(float CO2, float temperature, float relative_humidity) {
  * https://www.dhs.wisconsin.gov/chemical/carbondioxide.htm
  * https://www.epa.gov/sites/default/files/2014-08/documents/base_3c2o2.pdf
  */
+// clang-format on
 uint32_t get_co2_color(float CO2) {
+  // clang-format off
   if (CO2 < 350) return  WHITE;
   if (CO2 < 400) return  BLUE;
   if (CO2 < 870) return  GREEN;
@@ -178,9 +182,11 @@ uint32_t get_co2_color(float CO2) {
   if (CO2 < 5000) return RED;
   if (CO2 < 9999) return HOT_PINK;
   return                 MAGENTA;
+  // clang-format on
 }
 
 const char *get_co2_description(float CO2) {
+  // clang-format off
   // Maximum line length "123456789ABCDEFGHIJKL";
   if (CO2 < 350) return  "Very good outdoor air";
   if (CO2 < 400) return  "Typical outdoor air";
@@ -190,15 +196,16 @@ const char *get_co2_description(float CO2) {
   if (CO2 < 5000) return "Bad - stale & stuffy";
   if (CO2 < 9999) return "Above exposure limit";
   return                 "Too high for accuracy";
+  // clang-format on
 }
 
 void blink(uint32_t color) {
-    pixels.setPixelColor(0, color);
-    pixels.show();
-    delay(blink_duration);
+  pixels.setPixelColor(0, color);
+  pixels.show();
+  delay(blink_duration);
 }
 
-void displayMessage(const char* message) {
+void displayMessage(const char *message) {
   display.clearDisplay();
   display.setCursor(leftmost_x, 0);
   display.println(message);
